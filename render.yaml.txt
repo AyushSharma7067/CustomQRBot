@@ -1,14 +1,13 @@
 services:
-  - type: web
+  - type: worker  # ⬅️ Critical: Use "worker" instead of "web"
     name: telegram-qr-bot
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python bot.py  # No need for start.sh on Windows!
+    startCommand: python bot.py  # Directly run the script
     envVars:
       - key: API_ID
-        value: your_api_id_here  # Replace with yours (from Telegram)
+        value: your_api_id_here  # Replace with your values
       - key: API_HASH
         value: your_api_hash_here
       - key: BOT_TOKEN
         value: your_bot_token_here
-    disablePortScanning: true
