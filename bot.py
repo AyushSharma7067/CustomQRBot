@@ -18,7 +18,7 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 waiting_for_text = {}
 
 #Start message for user----
-@client.on(events.NewMessage(pattern=r'/(?i)start'))
+@client.on(events.NewMessage(pattern=r'(?i)/start'))
 async def start(event):
     #Extract sender id-----
     sender = await event.get_sender()
@@ -79,5 +79,8 @@ async def text_handler(event):
             await event.respond(f"An Error occored: {e}") 
 
 # Start the bot-----
-print("Bot is running...")
-client.run_until_disconnected()
+try:
+    print("Bot is running...")
+    client.run_until_disconnected()
+except Exception as e:
+    print(f"CRITICAL ERROR: {e}")
