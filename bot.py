@@ -1,30 +1,19 @@
 import qrcode
-from telethon import TelegramClient, events
 import os
-from dotenv import load_dotenv
+import telebot
 
-# Load environment variables (for local testing)
-load_dotenv()
+# Initialize the bot with your token
+bot = telebot.TeleBot("8033279511:AAGSFNHHDrmvi8l9o_lmIIAbqs2Grc9C_qo")
 
-# Get credentials from environment variables (safer than hardcoding)
-api_id = int(os.getenv("API_ID")) 
-api_hash = os.getenv("API_HASH")  
-bot_token = os.getenv("BOT_TOKEN")
-
-# Create the client and connect
-client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
-#Hold the user for waiting to write text---
+# Hold the user for waiting to write text
 waiting_for_text = {}
 
-#Start message for user----
-@client.on(events.NewMessage(pattern=r'(?i)/start'))
-async def start(event):
-    #Extract sender id-----
-    sender = await event.get_sender()
-    user_id = sender.id
+# Start message for user
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    user_id = message.from_user.id
     
-    #Store user_id in waiting_for_text dic.----
+    # Store user_id in waiting_for_text dict
     waiting_for_text[user_id] = True
     
     welcome_message = (
@@ -34,22 +23,23 @@ async def start(event):
         "For example: /text Demo Text\n\n"
         "Let's get started! What would you like to convert into a QR code? 🤔"
     )
-    await event.respond(welcome_message)
-    raise events.StopPropagation
+    bot.reply_to(message, welcome_message)
 
-#Make text sender programm----
-@client.on(events.NewMessage(pattern=r'/text (.+)'))
-async def text_handler(event):
-    #Extract sender id-----
-    sender = await event.get_sender()
-    user_id = sender.id
+# Text handler
+@bot.message_handler(commands=['text'])
+def handle_text(message):
+    user_id = message.from_user.id
 
-    #Check user_id is inside waiting_for_text or not---
+    # Check if user is in waiting_for_text
     if user_id in waiting_for_text and waiting_for_text[user_id]:
-        #get the text which is after commands like (/text)----
-        user_text = event.pattern_match.group(1) 
+        # Get the text after the command
+        if len(message.text.split()) < 2:
+            bot.reply_to(message, "Please provide some text after the /text command.")
+            return
+            
+        user_text = ' '.join(message.text.split()[1:])
 
-         # Generate QR code
+        # Generate QR code
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -62,25 +52,23 @@ async def text_handler(event):
         # Create an image from the QR Code instance
         img = qr.make_image(fill_color="black", back_color="white")
 
-        #Convert to RGB to remove transparency---
+        # Convert to RGB to remove transparency
         img = img.convert('RGB')
 
-        # Save the image to a file----
+        # Save the image to a file
         img_path = f'{user_id}.png'
         img.save(img_path, format='PNG')
 
         try:
-            # Send the QR code image back to the user----
-            await event.respond("Here is your QR code! 📷", file=img_path)
+            # Send the QR code image back to the user
+            with open(img_path, 'rb') as photo:
+                bot.send_photo(message.chat.id, photo, caption="Here is your QR code! 📷")
             
-            #Remove save file with os---
+            # Remove saved file
             os.remove(img_path)
         except Exception as e:
-            await event.respond(f"An Error occored: {e}") 
+            bot.reply_to(message, f"An error occurred: {e}")
 
-# Start the bot-----
-try:
-    print("Bot is running...")
-    client.run_until_disconnected()
-except Exception as e:
-    print(f"CRITICAL ERROR: {e}")
+# Start the bot
+print("Bot is running...")
+bot.polling()
