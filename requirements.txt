@@ -1,3 +1,2 @@
-telethon==1.39.0
 qrcode[pil]==7.4.2
-python-dotenv==1.0.0
+telebot==0.0.5
